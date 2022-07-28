@@ -1,0 +1,77 @@
+import java.io.IOException;
+import java.util.*;
+import java.lang.*;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.*;
+
+public class CABuilderReader {
+    public static void main(String[] args) throws IOException{
+        String fileName = "Test1.txt";
+        
+        String line = null;
+        
+        try {
+            FileReader fileReader = new FileReader(fileName);
+            
+            BufferedReader bufferedReader = new BufferedReader(fileReader);
+            
+            line = bufferedReader.readLine();
+            
+            //first line, the program name
+            if (line != null) {
+                //insert this into our program table
+                //goes into the program_name column
+            } else { 
+                System.out.println("Invalid File!");
+                System.exit(0);
+            }
+            
+            line = bufferedReader.readLine(); 
+            
+            if (line != "") { //if there is no whitespace after title exit
+                System.out.println("Invalid File!");
+                System.exit(0);
+            }
+            
+            boolean counter = true;
+            
+            while((line = bufferedReader.readLine()) != null) {
+                if (counter) { //prompt, assuming it's 1 line
+                    //insert this into our prompts table
+                    //goes into the prompt_text column 
+                    counter = false;
+                    line = bufferedReader.readLine();
+                    
+                } else { //response
+                    line = bufferedReader.readLine();
+                    
+                    if (line.charAt(0) != '[') { //one response
+                        //insert this into our responses table
+                        //goes into the response_text column
+                    } else { //multiple responses
+                        //get rid of brackets
+                        //split into string array
+                        //add each element into the responses table
+                        //each element goes into response_text column (different response_id but linked to the same prompt_id)
+                    }
+                    counter = true;
+                    line = bufferedReader.readLine();
+                    
+                }
+                
+                
+            }
+            
+        } catch (FileNotFoundException ex) {
+            System.out.println("Unable to open file '" + fileName + "'");
+            System.exit(0);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            System.exit(0);
+        }
+
+        
+        
+    }
+}
