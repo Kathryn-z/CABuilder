@@ -4,35 +4,54 @@ import java.lang.*;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.*;
+import java.sql.*;
 
 public class CABuilderReader {
+    
     public static void main(String[] args) throws IOException{
-        String fileName = "Test1.txt";
+        String fileName = "Test_Example_Correct.txt"; //user should be able to upload file 
         
         String line = null;
         
+        String url = "jdbc:mysql://localhost:3306/javabase";
+        String username = "java";
+        String password = "javapassword";
+        
+        System.out.println("Connecting database...");
+        
+        int currentprogramid = 0;
+        int currentpromptid = 0;     
+
+        try (Connection conn = DriverManager.getConnection(url, username, password)) {
+            System.out.println("Database connected!");
+        
         try {
             FileReader fileReader = new FileReader(fileName);
-            
             BufferedReader bufferedReader = new BufferedReader(fileReader);
-            
             line = bufferedReader.readLine();
-            
-            //first line, the program name
-            if (line != null) {
-                //insert this into our program table
-                //goes into the program_name column
+            Statement statement = conn.createStatement();
+               
+
+            if (line != null) { //insert first line, the program name into our program table
+                statement.executeUpdate("INSERT INTO programs(program_name) " + "VALUES ('" + line + "')"); //goes into the program_name column, maybe need to surround line with single quotes if it isn't working
+                ResultSet rs = statement.executeQuery("SELECT LAST_INSERT_ID()");
+                rs.next();
+                currentprogramid = ((Number) rs.getObject(1)).intValue(); // now our foreignkey program_id is stored for prompt INSERTS
+                System.out.println("Succesfully read and inserted program name, " + line + "!");
+         
             } else { 
-                System.out.println("Invalid File!");
+                System.out.println("Invalid program name!");
                 System.exit(0);
             }
             
             line = bufferedReader.readLine(); 
             
-            if (line != "") { //if there is no whitespace after title exit
-                System.out.println("Invalid File!");
+            if (!line.equals("")) { //if there is no whitespace after title exit
+                System.out.println("No whitespace after program name!");
+                statement.executeQuery("DELETE FROM programs WHERE program_id=" + String.valueOf(currentprogramid));
                 System.exit(0);
-            }
+            } 
+            //possibly make program more efficient: execute queries all at once after checking that valid file was submitted
             
             boolean counter = true;
             
@@ -40,36 +59,43 @@ public class CABuilderReader {
                 if (counter) { //prompt, assuming it's 1 line
                     //insert this into our prompts table
                     //goes into the prompt_text column 
+                    statement.executeUpdate("INSERT INTO prompts(prompt_text, program_id) " + "VALUES ('" + line + "', " + String.valueOf(currentprogramid) + ")"); 
+                    ResultSet rs = statement.executeQuery("SELECT LAST_INSERT_ID()");
+                    rs.next();
+                    currentpromptid = ((Number) rs.getObject(1)).intValue(); // now our foreignkey prompt_id is stored for responses INSERTS
                     counter = false;
+                    System.out.println("Successfully read and inserted prompt, " + line + "!");
                     line = bufferedReader.readLine();
-                    
                 } else { //response
-                    line = bufferedReader.readLine();
-                    
                     if (line.charAt(0) != '[') { //one response
                         //insert this into our responses table
                         //goes into the response_text column
+                        statement.executeUpdate("INSERT INTO responses(response_text, prompt_id) " + "VALUES ('" + line + "', " + String.valueOf(currentpromptid) + ")");
+                        System.out.println("Successfully read and inserted response, " + line + "!");
                     } else { //multiple responses
-                        //get rid of brackets
-                        //split into string array
-                        //add each element into the responses table
-                        //each element goes into response_text column (different response_id but linked to the same prompt_id)
+                        line = line.substring(1, line.length() - 1); //get rid of brackets
+                        List<String> items = Arrays.asList(line.split("\\s*,\\s*")); //split into List containing each individual response
+                        for (String response : items) { //each element goes into response_text column (different response_id but linked to the same prompt_id)
+                            statement.executeUpdate("INSERT INTO responses(response_text, prompt_id) " + "VALUES ('" + response + "', " + String.valueOf(currentpromptid) + ")"); //add each element into the responses table
+                            System.out.println("Successfully read and inserted response, " + response + "!");
+                        }
+                        System.out.println("Successfully read and inserted responses!");
                     }
                     counter = true;
-                    line = bufferedReader.readLine();
-                    
-                }
-                
-                
+                    line = bufferedReader.readLine();                    
+                }   
             }
-            
+         
         } catch (FileNotFoundException ex) {
             System.out.println("Unable to open file '" + fileName + "'");
             System.exit(0);
         } catch (IOException ex) {
             ex.printStackTrace();
             System.exit(0);
+        } } catch (SQLException e) {
+            throw new IllegalStateException("SQL Error!", e);
         }
+        
 
         
         
